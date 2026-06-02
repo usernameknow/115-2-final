@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>飲人入勝食驗室</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+    font-family:'PingFang TC','Microsoft JhengHei',sans-serif;
+    min-height:100vh;
+    background:#1a0e06;
+    display:flex;
+    justify-content:center;
+    align-items:flex-start;
+    padding:30px 15px 50px;
+    position:relative;
+    overflow-x:hidden;
+}
+canvas#bg { position:fixed; top:0; left:0; width:100%; height:100%; z-index:0; pointer-events:none; }
+.container {
+    position:relative; z-index:2;
+    background:rgba(255,248,238,0.93);
+    padding:32px 26px;
+    border-radius:24px;
+    box-shadow:0 20px 60px rgba(0,0,0,0.45),0 0 0 1px rgba(210,170,110,0.3);
+    width:100%; max-width:560px;
+    text-align:center;
+    backdrop-filter:blur(12px);
+}
+.lab-badge {
+    display:inline-block;
+    background:#f5e6c8; color:#7d4f1a;
+    border:1px solid #c8963c;
+    border-radius:20px; font-size:11px;
+    font-weight:bold; letter-spacing:2px;
+    padding:3px 14px; margin-bottom:6px;
+}
+h1 { color:#5c2d0a; margin:0 0 4px; font-size:25px; letter-spacing:1px; }
+.subtitle { color:#9a7a5a; font-size:13px; margin-bottom:20px; }
+h2 { font-size:16px; color:#3a2010; margin-bottom:18px; line-height:1.6; font-weight:700; }
+.question-label {
+    display:inline-block; background:#7d4012; color:#fdefd8;
+    font-size:11px; font-weight:bold; letter-spacing:1px;
+    padding:3px 12px; border-radius:10px; margin-bottom:10px;
+}
+.quiz-card { display:none; }
+.quiz-card.active { display:block; animation:slideUp 0.38s ease forwards; }
+.btn-group { display:flex; flex-direction:column; gap:10px; margin-top:16px; }
+.grid-btn-group { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-top:16px; }
+.full-width { grid-column:span 2; }
+button {
+    background:rgba(255,248,238,0.85);
+    border:1.5px solid #d4a96a; color:#3a2010;
+    padding:12px 15px; font-size:13.5px; font-weight:600;
+    border-radius:13px; cursor:pointer;
+    transition:all 0.2s ease;
+    text-align:left; line-height:1.4;
+    font-family:'PingFang TC','Microsoft JhengHei',sans-serif;
+}
+button:hover {
+    background:linear-gradient(135deg,#7d4012,#a0581e);
+    color:#fdefd8; border-color:transparent;
+    transform:translateY(-2px);
+    box-shadow:0 6px 18px rgba(100,50,10,0.22);
+}
+.filter-panel {
+    background:rgba(245,230,200,0.5);
+    padding:15px; border-radius:16px;
+    margin:10px 0 20px; border:1px solid #c8963c;
+    text-align:left;
+}
+.panel-header { font-size:11px; font-weight:bold; letter-spacing:2px; color:#7d4012; margin-bottom:12px; text-align:center; }
+.input-label { font-size:12px; font-weight:bold; color:#7d4012; margin-bottom:4px; display:block; }
+.custom-input {
+    width:100%; padding:9px 13px; margin-bottom:10px;
+    border:1px solid #c8a06a; border-radius:10px;
+    font-size:13px; outline:none; box-sizing:border-box;
+    background:rgba(255,252,245,0.9); color:#3a2010;
+    transition:border 0.2s;
+    font-family:'PingFang TC','Microsoft JhengHei',sans-serif;
+}
+.custom-input:focus { border-color:#7d4012; }
+.input-focus { border:1.5px solid #5a9e60; }
+.input-exclude { border:1.5px solid #c0392b; }
+.grid-btn-group button { text-align:center; }
+.back-btn {
+    background:transparent; border:none; color:#9a7a5a;
+    font-size:13px; font-weight:bold; cursor:pointer;
+    padding:5px 10px; border-radius:8px; margin-top:11px; display:inline-block;
+    font-family:'PingFang TC','Microsoft JhengHei',sans-serif;
+}
+.back-btn:hover { background:rgba(200,150,60,0.13); color:#5c2d0a; transform:none; box-shadow:none; }
+.result-title { font-size:21px; font-weight:bold; color:#5c2d0a; margin-bottom:4px; }
+.report-id { font-size:11px; color:#b8956a; letter-spacing:2px; margin-bottom:8px; }
+.mood-tag {
+    display:inline-block; background:#f5e0a0; color:#5c3a00;
+    padding:6px 18px; border-radius:20px; font-size:13px;
+    font-weight:bold; margin-bottom:13px; border:1px solid #c8a030;
+}
+.mood-analysis {
+    font-size:13.5px; color:#4a3020; line-height:1.7;
+    margin-bottom:20px; padding:13px 15px;
+    background:rgba(245,230,200,0.4);
+    border-left:3px solid #c8963c;
+    border-radius:0 10px 10px 0; text-align:justify;
+    white-space: pre-line;
+}
+.combo-container { display:flex; flex-direction:column; gap:12px; margin:16px 0; }
+.food-box,.drink-box { color:white; padding:17px; border-radius:15px; text-align:center; display:none; }
+.food-box { background:linear-gradient(135deg,#c0621a,#9a4010); }
+.drink-box { background:linear-gradient(135deg,#7d4012,#5c2d0a); }
+.box-title { font-size:11px; letter-spacing:2px; margin-bottom:5px; opacity:0.85; font-weight:bold; }
+.item-name { font-size:21px; font-weight:900; margin-bottom:5px; }
+.item-desc { font-size:13px; opacity:0.9; line-height:1.4; }
+.restart-btn {
+    background:#3a2010 !important; border:none !important;
+    color:#fdefd8 !important; margin-top:16px;
+    text-align:center !important; border-radius:13px !important;
+    padding:13px !important; font-size:14px !important;
+    font-weight:600 !important; width:100%; cursor:pointer;
+}
+.restart-btn:hover { background:#1a0f08 !important; transform:translateY(-2px) !important; }
+.progress-bar {
+    width:100%; height:5px;
+    background:rgba(200,150,80,0.2);
+    border-radius:3px; margin-bottom:20px;
+    overflow:hidden; display:none;
+}
+.progress-fill {
+    height:100%;
+    background:linear-gradient(90deg,#7d4012,#c8963c);
+    width:0%; transition:width 0.35s ease;
+}
+.step-indicator { font-size:11px; color:#b8956a; letter-spacing:1px; margin-bottom:6px; }
+
+/* 🎵 音樂控制按鈕樣式 */
+.bgm-controller {
+    position:absolute; top:20px; right:22px;
+    background:rgba(245,230,200,0.85); border:1px solid #c8963c;
+    color:#7d4012; font-size:11px; font-weight:bold;
+    padding:4px 12px; border-radius:30px; cursor:pointer;
+    display:flex; align-items:center; gap:5px; z-index:10;
+    transition:all 0.2s ease;
+    box-shadow:0 2px 8px rgba(0,0,0,0.1);
+}
+.bgm-controller:hover { background:#7d4012; color:#fdefd8; transform:scale(1.05); }
+
+@keyframes slideUp { from{opacity:0;transform:translateY(13px)} to{opacity:1;transform:translateY(0)} }
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+
+<audio id="bgm-player" src="shi-yan-shi.mp3" loop></audio>
+
+<div class="container">
+    <div id="bgm-toggle-btn" class="bgm-controller" onclick="toggleMusic()">🔇 靜音中</div>
+
+    <div id="progress" class="progress-bar"><div id="progress-fill" class="progress-fill"></div></div>
+
+    <div id="start-card" class="quiz-card active">
+        <div class="lab-badge">⚗️ 飲人入勝食驗室</div>
+        <h1>飲人入勝食驗室</h1>
+        <div class="subtitle">8 道精準試題，鑑定你今日最命定的飲食配方</div>
+        <div class="filter-panel">
+            <div class="panel-header">— 受測者資料登錄 —</div>
+            <span class="input-label">👤 受測者代號</span>
+            <input type="text" id="name-input" class="custom-input" placeholder="輸入你的名字或暱稱" maxlength="10">
+            <span class="input-label">🎯 指定配方方向（聚焦）</span>
+            <input type="text" id="focus-input" class="custom-input input-focus" placeholder="例：麵、日式、茶、海鮮（可留空）">
+            <span class="input-label">❌ 排除配方成分（禁忌）</span>
+            <input type="text" id="exclude-input" class="custom-input input-exclude" placeholder="例：辣、炸、牛肉、起司（可留空）">
+        </div>
+        <div class="btn-group">
+            <button onclick="selectMode('food')" style="text-align:center;">🍽️ 僅鑑定【主食配方】</button>
+            <button onclick="selectMode('drink')" style="text-align:center;">🥤 僅鑑定【飲品配方】</button>
+            <button onclick="selectMode('combo')" style="text-align:center;">🍱 完整鑑定【主食 + 飲品】</button>
+        </div>
+    </div>
+
+    <div id="q-time" class="quiz-card">
+        <div class="step-indicator">試驗進度 1 / 8</div>
+        <div class="question-label">樣本採集 #01</div>
+        <h2>目前的時空環境屬於哪個能量時段？</h2>
+        <div class="grid-btn-group">
+            <button onclick="ans('time','breakfast','q-time','q-mood')">🌅 清晨甦醒</button>
+            <button onclick="ans('time','lunch','q-time','q-mood')">☀️ 正午烈日</button>
+            <button onclick="ans('time','tea','q-time','q-mood')">☕ 慵懶午後</button>
+            <button onclick="ans('time','dinner','q-time','q-mood')">🌙 華燈初上</button>
+            <button onclick="ans('time','snack','q-time','q-mood')" class="full-width">🦉 寂靜深夜</button>
+        </div>
+        <button class="back-btn" onclick="goBack('q-time')">⬅️ 返回登錄台</button>
+    </div>
+
+    <div id="q-mood" class="quiz-card">
+        <div class="step-indicator">試驗進度 2 / 8</div>
+        <div class="question-label">情緒狀態掃描 #02</div>
+        <h2>此刻受測者的情緒頻率落在哪個象限？</h2>
+        <div class="btn-group">
+            <button onclick="ans('mood','happy','q-mood','q-weather')">😄 愉悅高昂——今天一切都順，想犒賞自己。</button>
+            <button onclick="ans('mood','tired','q-mood','q-weather')">😮‍💨 疲憊低電——身心耗盡，只想被溫柔包覆。</button>
+            <button onclick="ans('mood','stressed','q-mood','q-weather')">😤 焦躁緊繃——壓力堆積，需要強烈的出口釋放。</button>
+            <button onclick="ans('mood','bored','q-mood','q-weather')">😑 麻木空洞——日常無聊到需要新鮮刺激來喚醒。</button>
+            <button onclick="ans('mood','sad','q-mood','q-weather')">🥺 有點低落——需要一點小確幸讓自己好過一點。</button>
+        </div>
+        <button class="back-btn" onclick="goBack('q-mood')">⬅️ 回上一項</button>
+    </div>
+
+    <div id="q-weather" class="quiz-card">
+        <div class="step-indicator">試驗進度 3 / 8</div>
+        <div class="question-label">外部環境感知 #03</div>
+        <h2>此刻窗外的天氣為受測者帶來什麼體感訊號？</h2>
+        <div class="btn-group">
+            <button onclick="ans('weather','hot','q-weather','q-solo')">☀️ 烈日高溫——全身發熱，身體渴望冰涼降溫。</button>
+            <button onclick="ans('weather','cool','q-weather','q-solo')">🌬️ 涼爽宜人——溫度剛好，食慾全面開機。</button>
+            <button onclick="ans('weather','cold','q-weather','q-solo')">🥶 寒冷低溫——手腳冰冷，急需熱氣騰騰的補給。</button>
+            <button onclick="ans('weather','rainy','q-weather','q-solo')">🌧️ 陰雨綿綿——灰色天空讓人想窩著吃點療癒系食物。</button>
+        </div>
+        <button class="back-btn" onclick="goBack('q-weather')">⬅️ 回上一項</button>
+    </div>
+
+    <div id="q-solo" class="quiz-card">
+        <div class="step-indicator">試驗進度 4 / 8</div>
+        <div class="question-label">社交場景分析 #04</div>
+        <h2>此次補給任務的執行模式為？</h2>
+        <div class="btn-group">
+            <button onclick="ans('solo','solo','q-solo','q-budget')">🧍 獨食模式——一個人靜靜享受，怎麼吃都自由。</button>
+            <button onclick="ans('solo','duo','q-solo','q-budget')">👫 雙人模式——兩個人，想找個可以好好聊天的地方。</button>
+            <button onclick="ans('solo','group','q-solo','q-budget')">👥 聚餐模式——多人同行，需要適合大家共享的選擇。</button>
+            <button onclick="ans('solo','takeout','q-solo','q-budget')">📦 外帶模式——不想出門，打包或外送回家搞定。</button>
+        </div>
+        <button class="back-btn" onclick="goBack('q-solo')">⬅️ 回上一項</button>
+    </div>
+
+    <div id="q-budget" class="quiz-card">
+        <div class="step-indicator">試驗進度 5 / 8</div>
+        <div class="question-label">消費慾望檢測 #05</div>
+        <h2>今日受測者的錢包開放程度設定為？</h2>
+        <div class="btn-group">
+            <button onclick="ans('budget','splurge','q-budget','q-caff2')">💸 今天就是要爽——貴一點沒關係，要吃就吃最好的。</button>
+            <button onclick="ans('budget','mid','q-budget','q-caff2')">💳 中等消費——CP值優先，不想踩雷也不要太克難。</button>
+            <button onclick="ans('budget','cheap','q-budget','q-caff2')">🪙 省錢模式——今天要精打細算，便宜好吃就是王道。</button>
+            <button onclick="ans('budget','dontcare','q-budget','q-caff2')">🤷 完全無感——只要好吃，價格不在考量範圍內。</button>
+        </div>
+        <button class="back-btn" onclick="goBack('q-budget')">⬅️ 回上一項</button>
+    </div>
+
+    <div id="q-caff2" class="quiz-card">
+        <div class="step-indicator">試驗進度 6 / 8</div>
+        <div class="question-label">壓力反應分析 #06</div>
+        <h2>當工作量如海嘯壓境，受測者大腦發出何種求援訊號？</h2>
+        <div class="btn-group">
+            <button onclick="ans('flavor','3','q-caff2','q-caff3')">🌶️ 強烈渴望高熱量辛辣炸物，以感官刺激對抗壓力。</button>
+            <button onclick="ans('flavor','2','q-caff2','q-caff3')">🍩 血糖告急，需立即補充爆甜物質以維持運作。</button>
+            <button onclick="ans('flavor','1','q-caff2','q-caff3')">🍲 胃部發出警訊，僅接受溫和清淡的流質補給。</button>
+            <button onclick="ans('flavor','0','q-caff2','q-caff3')">🧊 系統過慢，需大量低溫液體執行緊急降溫程序。</button>
+        </div>
+        <button class="back-btn" onclick="goBack('q-caff2')">⬅️ 回上一項</button>
+    </div>
+
+    <div id="q-caff3" class="quiz-card">
+        <div class="step-indicator">試驗進度 7 / 8</div>
+        <div class="question-label">續航力評估 #07</div>
+        <h2>下午三點，專注力完全歸零，受測者的應對反應為？</h2>
+        <div class="btn-group">
+            <button onclick="ans('volume','3','q-caff3','q-caff4')">🍕 消化系統發出大量警報，需立即執行高熱量補給任務。</button>
+            <button onclick="ans('volume','2','q-caff3','q-caff4')">🍬 口腔進入空轉模式，需咀嚼類刺激物維持清醒。</button>
+            <button onclick="ans('volume','1','q-caff3','q-caff4')">👀 無飢餓訊號，但四肢沉重，需起身活動重啟循環。</button>
+            <button onclick="ans('volume','0','q-caff3','q-caff4')">🫠 進入靈魂出竅模式，對螢幕執行無意義凝視。</button>
+        </div>
+        <button class="back-btn" onclick="goBack('q-caff3')">⬅️ 回上一項</button>
+    </div>
+
+    <div id="q-caff4" class="quiz-card">
+        <div class="step-indicator">試驗進度 8 / 8</div>
+        <div class="question-label">嗅覺偏好鑑定 #08</div>
+        <h2>若可立即傳送至某空間，受測者最渴望被哪種氣味包圍？</h2>
+        <div class="btn-group">
+            <button onclick="ans('style','coffee','q-caff4','result')">🪵 重烘焙豆香與老木質書架氣息混合的深夜咖啡館。</button>
+            <button onclick="ans('style','tea','q-caff4','result')">🌱 雨後飄散清甜茶香與泥土氣息的高山茶園。</button>
+            <button onclick="ans('style','sweet','q-caff4','result')">🥞 濃郁奶糖香氣瀰漫的精品甜點實驗室。</button>
+            <button onclick="ans('style','fresh','q-caff4','result')">🍋 現榨檸檬、薄荷與氣泡交融的夏日海灘吧台。</button>
+        </div>
+        <button class="back-btn" onclick="goBack('q-caff4')">⬅️ 回上一項</button>
+    </div>
+
+    <div id="result-card" class="quiz-card">
+        <div class="lab-badge">⚗️ 食驗報告出爐</div>
+        <div class="result-title">飲食配方鑑定完成</div>
+        <div class="report-id" id="report-id">報告編號 載入中...</div>
+        <div id="mood-tag" class="mood-tag">鑑定標籤</div>
+        <div id="mood-analysis-text" class="mood-analysis">分析中...</div>
+        <div class="combo-container">
+            <div id="food-box" class="food-box">
+                <div class="box-title">🍽️ 今日命定主食配方</div>
+                <div id="food-result" class="item-name"></div>
+                <div id="food-desc" class="item-desc"></div>
+            </div>
+            <div id="drink-box" class="drink-box">
+                <div class="box-title">🥤 專屬飲品特調配方</div>
+                <div id="drink-result" class="item-name"></div>
+                <div id="drink-desc" class="item-desc"></div>
+            </div>
+        </div>
+        <button onclick="restartQuiz()" class="restart-btn">🔄 重新提交受測樣本</button>
+    </div>
+</div>
+
+<script>
+// ── 🎵 新增：背景音樂播放控制 ─────────────────────────────────────
+const music = document.getElementById('bgm-player');
+const musicBtn = document.getElementById('bgm-toggle-btn');
+music.volume = 0.4; // 預設舒適的 40% 音量大小
+
+function tryPlayMusic() {
+    // 解決瀏覽器不允許自動播放的規範，使用者點選進入測驗模式時同步解鎖音訊
+    if (music.paused) {
+        music.play().then(() => {
+            musicBtn.innerText = "🎵 播放中";
+        }).catch(err => console.log("等候受測者行為解鎖音訊流", err));
+    }
+}
+
+function toggleMusic() {
+    if (music.paused) {
+        music.play();
+        musicBtn.innerText = "🎵 播放中";
+    } else {
+        music.pause();
+        musicBtn.innerText = "🔇 已靜音";
+    }
+}
+
+// ── 資料庫：精選台灣在地小吃與常見手搖飲 ──────────────────────────
+const FOODS = [
+  { name:'現煮麻辣小火鍋 🍲', tag:'解離狀態的狂歡統治者', desc:'香麻紅油湯底配上爆量肥牛與滷大腸，辛辣重口味。', analysis:'今天的疲勞指數已達臨界點。熱氣騰騰的百元麻辣小火鍋，是犒賞你撐過今天的最暖心儀式。', hot:true, heavy:true, spicy:true, solo:true, premium:false },
+  { name:'排骨便當店炸大雞排飯 🍱', tag:'腎上腺素燃燒殆盡的戰士', desc:'剛出爐、外酥內嫩的黃金大雞排便當，配菜豐富重口味炸物。', analysis:'正午的你焦慮感達到臨界值！卡滋卡滋的現炸大雞排與熱騰騰的白飯能幫你嚼碎所有壓力。', hot:true, heavy:true, spicy:false, solo:true, premium:false },
+  { name:'川味紅燒牛肉麵 🍜', tag:'尋求高強度撞擊的靈魂', desc:'熬製厚實的紅燒牛肉湯頭，搭配帶筋牛肉與辣油台式麵食。', analysis:'此刻你的感官處於極度飢餓狀態。一碗香氣奔放、微辣滾燙的台灣經典牛肉麵是完美的補給。', hot:true, heavy:true, spicy:true, solo:true, premium:true },
+  { name:'夜市經典鐵板牛排 🥩', tag:'高強能量的滋滋追隨者', desc:'高溫鐵板上的厚切牛排、油麵與半熟蛋，淋滿黑胡椒重口味。', analysis:'下班後的你充滿疲倦，渴望最直白、滋滋作響的黑胡椒香氣與大塊肉排來填飽肚子。', hot:true, heavy:true, spicy:true, solo:true, premium:false },
+  { name:'肉汁爆漿小籠湯包 🥟', tag:'傳統溫潤的精緻美食家', desc:'皮薄多汁的現炊鮮肉小籠包，沾上薑絲醬油，溫熱不辣不炸。', analysis:'不想要太過油膩的加工，簡簡單單一籠現炊、會噴汁的皮薄小籠包最能細緻安撫你的胃。', hot:true, heavy:true, spicy:false, solo:true, premium:true },
+  { name:'經典金黃炸豬排咖哩飯 🍛', tag:'渴望飽腹的務實主義', desc:'外酥內多汁的現炸豬排，澆上濃郁厚實的日式咖哩醬飯炸物。', analysis:'你現在需要極高的澱粉與肉量飽足感，濃郁香甜的熱咖哩淋上現炸豬排能給你百分百的續航力。', hot:true, heavy:true, spicy:false, solo:true, premium:false },
+  { name:'台式生炒花枝羹 🥣', tag:'急需微辣熱情注入的靈魂', desc:'大火爆炒厚切花枝與烏醋酸辣勾芡熱湯，台式海鮮不炸。', analysis:'日常反覆的常規讓你有點麻木。帶有烏醋香與微辣的滾燙生炒花枝羹能瞬間驚醒你的味覺。', hot:true, heavy:false, spicy:true, solo:true, premium:false },
+  { name:'現煎夜市蚵仔煎 🍳', tag:'尋求多巴胺的台味靈魂', desc:'肥美鮮蚵、雞蛋與香脆太白粉芡水，淋上酸甜海山醬不炸。', analysis:'心情有些沉悶或無聊？這盤軟Q帶脆、淋上微辣酸甜特調醬汁的蚵仔煎，能帶給你最對味的台式療癒。', hot:true, heavy:false, spicy:true, solo:true, premium:false },
+  { name:'南部風味鍋燒意麵 🍲', tag:'電量低迷的溫和派', desc:'清甜柴魚湯頭，油炸意麵吸飽熱湯，配有鮮蝦與雞蛋麵食。', analysis:'你的大腦電量此時正處於黃色警告。比起重口味，你更需要一碗充滿高湯溫熱包覆感的台式鍋燒意麵。', hot:true, heavy:false, spicy:false, solo:true, premium:false },
+  { name:'巷口鮮肉水餃 + 酸辣湯 🥟', tag:'尋求極致安全感的夜貓', desc:'剛出爐鮮肉水餃配上一碗酸辣對味的台式酸辣湯麵食不炸。', analysis:'無論時間再晚，水餃配酸辣湯的經典神組合永遠不會出錯，是最腳踏實地的心靈避難所。', hot:true, heavy:false, spicy:true, solo:true, premium:false },
+  { name:'萬能古早味滷肉飯 + 貢丸湯 🍚', tag:'歸心似箭的漫遊者', desc:'肥美豬肉黃金比例滷汁、配上滷蛋與現煮熱貢丸湯不辣不炸。', analysis:'你此時排斥過度包裝。最地道的滷肉飯鹹甜油脂香與溫熱清湯，最能帶給你有溫度的安心感。', hot:true, heavy:false, spicy:false, solo:true, premium:false },
+  { name:'現炒什錦肉絲炒飯 🍚', tag:'追求踏實飯香的實幹家', desc:'大火翻炒、粒粒分明帶有濃郁大鍋香氣的豬肉絲蛋炒飯不辣不炸。', analysis:'大火現炒的鍋氣最能療癒疲憊。一份簡單、快速卻香氣四溢的蛋炒飯，最能提供你踏實的補給。', hot:true, heavy:false, spicy:false, solo:true, premium:false },
+  { name:'台式蒜香鹽水雞大拼盤 🥦', tag:'高智商都市游牧者', desc:'冰涼鹹香的去骨雞肉、百頁豆腐與時令蔬菜拼盤，不辣不炸。', analysis:'開局你想吃清爽高纖！冰涼爽口且富含蒜香的鹽水雞是維持高效運作的完美輕配方。', hot:false, heavy:true, spicy:false, solo:true, premium:false },
+  { name:'傳統市場煙燻冷滷味 🥢', tag:'微醺夜小聚的主角', desc:'冰涼鹹香的滷牛腱、豬耳朵、豆乾與大腸切盤下酒菜，不辣不炸。', analysis:'你需要鹹香有咬勁、帶著常溫滷汁香氣的東西來配劇，冷滷是深夜獨處的最佳床邊伴侶。', hot:false, heavy:true, spicy:false, solo:true, premium:false },
+  { name:'日式平價綜合壽司餐盒 🍣', tag:'追求純粹的極簡哲學家', desc:'海苔捲壽司、豆皮壽司與花壽司大拼盤，冰涼不辣不炸。', analysis:'你此刻極度厭惡油煙感。高雅乾淨、帶有微酸醋飯香的平價便當壽司，最能幫你平靜地為今天收尾。', hot:false, heavy:true, spicy:false, solo:true, premium:false },
+  { name:'巷口古早味麻醬涼麵 🥢', tag:'燥熱夏日的避難指南', desc:'冰涼小黃瓜絲與特調濃郁胡麻蒜香醬汁乾拌麵食，清淡不辣不炸。', analysis:'高溫體感讓你的胃口緊閉。一盤冰涼滑順的台式小黃瓜涼麵，最能溫和激活你的食慾。', hot:false, heavy:false, spicy:false, solo:true, premium:false },
+  { name:'傳統黑糖綜合剉冰 🍧', tag:'甜食多巴胺上癮者', desc:'細緻剉冰淋上濃郁手工黑糖水，搭配蜜紅豆、粉圓甜點不辣不炸。', analysis:'午後的倦怠感狠狠擊中了你。你的身體此時瘋狂索求多巴胺，大碗黑糖剉冰是唯一的幸福解藥。', hot:false, heavy:false, spicy:false, solo:true, premium:false },
+  { name:'手工古早味綜合豆花 🥛', tag:'追求微小確幸的平衡者', desc:'滑嫩手工豆花、Q彈芋圓與常溫微甜糖水甜品，不辣不炸。', analysis:'你口乾舌燥。冰涼滑順、帶有濃郁豆香且富嚼勁的台式手工豆花最能安撫你的小毛躁。', hot:false, heavy:false, spicy:false, solo:true, premium:false },
+  { name:'薑母鴨 / 傳統羊肉爐 🍲', tag:'社交能量全開的連結者', desc:'帶有濃郁米酒與老薑香氣的溫熱溫補大鍋物，多人共享不辣不炸。', analysis:'你今天渴望深刻、溫暖的連結。一鍋熱氣騰騰的家常圍爐鍋物最能讓大家圍坐在一起聊天。', hot:true, heavy:true, spicy:false, solo:false, premium:true },
+  { name:'台式海鮮熱炒大拼盤 🦞', tag:'熱鬧派對的靈魂人物', desc:'蔥爆牛肉、客家小炒與現炒海鮮辛香重口味，多人分享台式熱炒炸物。', analysis:'今晚你需要的不是安靜，而是鼎沸的煙火氣與人聲。熱炒店的台菜最能承載你此刻的熱情。', hot:true, heavy:true, spicy:false, solo:false, premium:false }
+];
+
+const DRINKS = {
+    coffee_hot:  [
+        { name: '超商現磨熱美式咖啡 ☕', desc: '純粹濃郁的高強度無糖黑咖啡，完全無奶不加糖。' },
+        { name: '小農鮮奶溫熱拿鐵 ☕', desc: '細緻鮮奶泡沫融合溫和咖啡豆香，醇厚乳香鮮奶。' },
+        { name: '連鎖手搖焙茶拿鐵 ☕', desc: '帶有濃厚堅果焙火香氣與鮮奶融合的暖胃熱咖啡調茶。' },
+        { name: '焦糖風味熱瑪奇朵 ☕', desc: '濃郁甜香焦糖與溫熱拿鐵結合的層次手搖熱咖啡。' }
+    ],
+    coffee_cool: [
+        { name: '超商經典冰美式咖啡 🧊', desc: '極致冰涼且口感滑順的冰黑咖啡，無糖無奶超清爽。' },
+        { name: '西西里冰檸檬咖啡 🍋', desc: '新鮮檸檬原汁與冰黑咖啡結合的酸甜爽口手搖水果飲。' },
+        { name: '現調生椰冰拿鐵咖啡 🥥', desc: '清甜椰子水與醇厚咖啡完美交融的椰香冰手搖咖啡。' },
+        { name: '手搖岩鹽起司奶蓋冰咖啡 🧊', desc: '細緻微鹹起司奶蓋覆蓋在冰爽冷萃黑咖啡上，層次豐富。' }
+    ],
+    tea_hot:     [
+        { name: '手搖現泡高山青茶（熱） 🍵', desc: '清澈茶湯帶有淡淡幽雅花香，無糖無奶純茶防冷。' },
+        { name: '熱現焙手作烏龍茶 🍵', desc: '深焙火候帶來濃郁成熟茶香，高溫純茶無糖回甘解膩。' },
+        { name: '古早味炭焙熱玄米茶 🍵', desc: '烘焙大麥玄米香氣與溫熱綠茶結合，溫和暖胃純茶不辣。' },
+        { name: '蜜香紅茶（溫熱手搖） 🫖', desc: '天然帶有蜜香甘甜的溫熱全發酵純紅茶飲不加奶。' }
+    ],
+    tea_cool:    [
+        { name: '街角手搖冷冷泡四季春 🍵', desc: '零糖分零熱量的冰鎮冷泡純青茶，手搖去冰。' },
+        { name: '冰鎮茉莉綠茶（無糖） 🍵', desc: '充滿清新花香、冰涼解渴的平價去油解膩綠茶. 。' },
+        { name: '手搖蜂蜜檸檬蘆薈（冰） 🍋', desc: '微酸檸檬融化蜂蜜，咬得到Q彈蘆薈果肉的水果茶飲。' },
+        { name: '阿嬤冬瓜雷夢（微冰） 🌱', desc: '傳統甜美冬瓜茶與新鮮檸檬汁完美結合的台式冰茶。' }
+    ],
+    sweet_hot:   [
+        { name: '香濃爆濃熱巧克力可可 ☕', desc: '濃郁絲滑的高純度濃熱巧克力甜飲，溫熱多巴胺。' },
+        { name: '傳統黑糖薑母鮮奶 🪵', desc: '老薑微辣驅寒搭配濃郁黑糖與滑順小農鮮奶的暖身熱飲。' },
+        { name: '萬丹紅豆鮮奶熱飲 🥣', desc: '綿密手工紅豆泥混合溫熱小農鮮奶，香濃醇厚。' },
+        { name: '夜市珍珠黑糖熱奶茶 🧋', desc: '滾燙現熬黑糖濃郁珍珠，搭配溫熱濃郁台式奶茶甜點。' }
+    ],
+    sweet_cool:  [
+        { name: '手搖波霸珍珠奶茶（微冰） 🧋', desc: '台灣手搖界長青神話，大顆珍珠嚼勁十足的經典冰奶茶。' },
+        { name: '泰式手標冰鮮奶茶 🧋', desc: '特有橘紅色茶香與濃郁煉乳甜香、大口吸超爽的泰奶。' },
+        { name: '手搖燕麥綠豆沙牛奶 🍓', desc: '現打綿密綠豆沙與濃郁鮮奶、大口咀嚼飽足感滿滿的冰沙。' },
+        { name: '起司厚奶蓋冰阿薩姆 🧋', desc: '高顏值鹹甜奶蓋浮在冰鎮紅茶上，口感層次豐富。' }
+    ],
+    fresh_hot:   [
+        { name: '夜市傳統現熬熱水果茶 🍎', desc: '新鮮蘋果、百香果肉現熬熬製的酸甜微甜溫熱水果茶不含奶。' },
+        { name: '桂圓紅棗溫熱蜜茶 🥣', desc: '傳統現熬滋補桂圓與紅棗甜香的無奶溫熱養生飲。' },
+        { name: '手作金桔熱檸檬茶 🍯', desc: '酸甜古早味金桔融合溫熱蜂蜜，潤喉暖心不含咖啡因。' },
+        { name: '草本新鮮熱薄荷綠茶 🌱', desc: '薄荷葉天然草本香氣搭配溫熱綠茶的解膩純茶不加糖. 。' }
+    ],
+    fresh_cool:  [
+        { name: '熱帶翡翠百香雙響炮 🍹', desc: '百香果汁融合香脆椰果與珍珠，口感極度豐富冰涼。' },
+        { name: '超商現打香脆翡翠檸檬冰沙 🍹', desc: '黃金比例酸甜現榨檸檬汁，碎冰激爽直達頭頂。' },
+        { name: '冰鎮極爽可口可樂 🥤', desc: '滋滋作響氣泡與極致冰涼的經典快樂水，消暑首選。' },
+        { name: '台灣金牌玻璃冰生啤酒 🍺', desc: '大口嚥下極致冰涼的大麥生鮮啤酒，大人宵夜解悶專用。（未成年請勿飲酒）' }
+    ]
+};
+
+const FALLBACK_FOOD = { 
+    name:'巷口台式肉燥乾麵 🍜', 
+    tag:'返璞歸真之智者', 
+    desc:'台灣人胃袋的終極救贖，傳統麵食不辣不炸。', 
+    analysis:'受測者目前的能量狀態極度深奧，任何特定配方皆無法精準定義。唯有此款歷久彌新的經典家常主食，最能溫和安撫你此時的靈魂。' 
+};
+const FALLBACK_DRINK = { name: '冰鎮大麥冬瓜茶 🥤', desc: '甜而不膩傳統古早味冬瓜茶，完全不含奶。' };
+
+// ── 狀態 ──────────────────────────────────────────────
+let S = { time:'lunch', mood:'tired', weather:'cool', solo:'solo', budget:'mid',
+          flavor:1, volume:1, style:'coffee' };
+let nickname='神祕受測者', currentMode='combo', focusKw='', excludeKw='';
+let history=[];
+
+const TOTAL=8;
+const stepMap={'q-time':1,'q-mood':2,'q-weather':3,'q-solo':4,'q-budget':5,
+               'q-caff2':6,'q-caff3':7,'q-caff4':8};
+
+function selectMode(mode) {
+    currentMode=mode;
+    
+    // 🎵 點擊模式按鈕時啟動音樂
+    tryPlayMusic();
+    
+    const n=document.getElementById('name-input').value.trim();
+    if(n) nickname=n;
+    focusKw=document.getElementById('focus-input').value.trim();
+    excludeKw=document.getElementById('exclude-input').value.trim();
+    history.push('start-card');
+    swap('start-card','q-time');
+    document.getElementById('progress').style.display='block';
+    prog(1);
+}
+
+function ans(key, val, from, to) {
+    S[key]=val;
+    history.push(from);
+    if(to==='result'){ calc(); return; }
+    swap(from, to);
+    prog(stepMap[to]||TOTAL);
+}
+
+function swap(a,b) {
+    document.getElementById(a).classList.remove('active');
+    document.getElementById(b).classList.add('active');
+}
+
+function prog(n) {
+    document.getElementById('progress-fill').style.width=`${(n/TOTAL)*100}%`;
+}
+
+function goBack(cur) {
+    if(!history.length) return;
+    const prev=history.pop();
+    swap(cur,prev);
+    if(prev==='start-card'){ document.getElementById('progress').style.display='none'; history=[]; }
+    else prog(stepMap[prev]||1);
+}
+
+function isMatch(name,desc) {
+    const t=(name+' '+desc).toLowerCase();
+    if(excludeKw && t.includes(excludeKw.toLowerCase())) return false;
+    if(focusKw && !t.includes(focusKw.toLowerCase())) return false;
+    return true;
+}
+
+function score(f) {
+    let s=0;
+    if(S.weather==='hot' || S.weather==='cool') { if(!f.hot) s+=2; }
+    if(S.weather==='cold' || S.weather==='rainy') { if(f.hot) s+=2; }
+    if(S.mood==='happy' || S.mood==='bored') { if(f.premium) s+=1; }
+    if(S.mood==='tired' || S.mood==='sad') { if(!f.spicy && f.hot) s+=2; }
+    if(S.mood==='stressed') { if(f.spicy) s+=2; }
+    if(S.solo==='solo'||S.solo==='takeout') { if(f.solo) s+=2; }
+    if(S.solo==='group') { if(!f.solo) s+=3; }
+    if(S.solo==='duo') { if(!f.solo || f.premium) s+=1; }
+    if(S.budget==='splurge'||S.budget==='dontcare') { if(f.premium) s+=1; }
+    if(S.budget==='cheap') { if(!f.premium) s+=1; }
+    const heavy=(S.volume>=2);
+    if(heavy && f.heavy) s+=2;
+    if(!heavy && !f.heavy) s+=2;
+    const wantSpicy=(S.flavor>=2);
+    if(wantSpicy && f.spicy) s+=2;
+    if(!wantSpicy && !f.spicy) s+=2;
+    
+    // 隨機震盪分數
+    s += Math.random() * 0.48;
+    return s;
+}
+
+function calc() {
+    prog(TOTAL);
+    document.getElementById('progress').style.display='none';
+
+    let pool=FOODS.filter(f=>isMatch(f.name,f.desc));
+    if(!pool.length) pool=[FALLBACK_FOOD];
+    
+    pool.sort((a,b)=>score(b)-score(a));
+    
+    // 前五高分抽取
+    const top=pool.slice(0,Math.min(5,pool.length));
+    const food=top[Math.floor(Math.random()*top.length)];
+
+    const wantHot=(S.weather==='cold'||S.weather==='rainy');
+    const temp=wantHot?'hot':'cool';
+    const drinkKey=`${S.style}_${temp}`;
+    
+    let dp=(DRINKS[drinkKey]||DRINKS['tea_cool']).filter(d=>isMatch(d.name,d.desc));
+    if(!dp.length){
+        let all=[]; for(let k in DRINKS) all=all.concat(DRINKS[k]);
+        dp=all.filter(d=>isMatch(d.name,d.desc));
+    }
+    const drink=dp.length?dp[Math.floor(Math.random()*dp.length)]:FALLBACK_DRINK;
+
+    const moodMap={happy:'愉悅高昂',tired:'疲憊低電',stressed:'焦躁緊繃',bored:'麻木空洞',sad:'有點低落'};
+    const weatherMap={hot:'烈日高溫',cool:'涼爽宜人',cold:'寒冷低溫',rainy:'陰雨綿綿'};
+    const soloMap={solo:'獨食',duo:'雙人同行',group:'多人聚餐',takeout:'外帶回家'};
+    const budgetMap={splurge:'豪氣消費',mid:'中等CP值',cheap:'精打細算',dontcare:'價格無感'};
+
+    const ctx=`情緒：${moodMap[S.mood]}｜天氣：${weatherMap[S.weather]}｜${soloMap[S.solo]}｜${budgetMap[S.budget]}`;
+
+    function genId() {
+        const c='ABCDEFGHJKLMNPQRSTUVWXYZ0123456789';
+        let id='SYL-'; for(let i=0;i<8;i++) id+=c[Math.floor(Math.random()*c.length)];
+        return id;
+    }
+
+    document.getElementById('report-id').innerText=`報告編號 ${genId()} ｜ 受測者：${nickname}`;
+    document.getElementById('mood-tag').innerText=`🔬 ${food.tag}`;
+    document.getElementById('mood-analysis-text').innerText=
+        `【${ctx}】\n\n根據食驗室 8 項數據交叉分析，受測者 ${nickname} 的飲食配方建議如下——\n\n${food.analysis}`;
+
+    const fb=document.getElementById('food-box'), db=document.getElementById('drink-box');
+    fb.style.display='none'; db.style.display='none';
+    if(currentMode==='food'||currentMode==='combo'){
+        fb.style.display='block';
+        document.getElementById('food-result').innerText=food.name;
+        document.getElementById('food-desc').innerText=food.desc;
+    }
+    if(currentMode==='drink'||currentMode==='combo'){
+        db.style.display='block';
+        document.getElementById('drink-result').innerText=drink.name;
+        document.getElementById('drink-desc').innerText=drink.desc;
+    }
+    document.getElementById('result-card').classList.add('active');
+}
+
+// ── 【核心 Bug 修復】 ────────────────────────────────
+function restartQuiz() {
+    // 1. 初始化資料變數
+    S={time:'lunch',mood:'tired',weather:'cool',solo:'solo',budget:'mid',flavor:1,volume:1,style:'coffee'};
+    nickname='神祕受測者'; focusKw=''; excludeKw=''; history=[];
+    
+    // 2. 清空首頁登錄框
+    ['name-input','focus-input','exclude-input'].forEach(id=>document.getElementById(id).value='');
+    
+    // 3. 【徹底杜絕重疊】找出畫面上「所有」卡片，強制將 active 移除，全面隱藏
+    document.querySelectorAll('.quiz-card').forEach(card => {
+        card.classList.remove('active');
+    });
+    
+    // 4. 僅讓首頁亮起，並將進度條歸零收起
+    document.getElementById('start-card').classList.add('active');
+    document.getElementById('progress').style.display = 'none';
+}
+
+// ── Canvas 背景 ────────────────────────────────
+(function(){
+    const cv=document.getElementById('bg'), ctx=cv.getContext('2d');
+    let W,H,pts=[];
+    const COLS=['rgba(210,160,80,','rgba(180,120,50,','rgba(240,200,130,','rgba(150,90,40,','rgba(255,220,160,'];
+    function resize(){ W=cv.width=window.innerWidth; H=cv.height=window.innerHeight; }
+    function Pt(){
+        this.reset=function(){
+            this.x=Math.random()*W; this.y=H+Math.random()*80;
+            this.r=Math.random()*2.8+0.8;
+            this.speed=Math.random()*0.38+0.12;
+            this.drift=(Math.random()-0.5)*0.28;
+            this.alpha=Math.random()*0.32+0.07;
+            this.color=COLS[Math.floor(Math.random()*COLS.length)];
+            this.wb=Math.random()*Math.PI*2;
+            this.ws=Math.random()*0.014+0.005;
+        };
+        this.reset(); this.y=Math.random()*H;
+    }
+    function init(){ resize(); pts=[]; const n=Math.floor(W*H/13000); for(let i=0;i<n;i++) pts.push(new Pt()); }
+    function bg(){
+        const g=ctx.createLinearGradient(0,0,W,H);
+        g.addColorStop(0,'#1a0e06'); g.addColorStop(0.4,'#2a1608');
+        g.addColorStop(0.7,'#1e1008'); g.addColorStop(1,'#120a04');
+        ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+        for(let y=0;y<H;y+=18){
+            const l=0.014+Math.sin(y*0.04)*0.007;
+            ctx.strokeStyle=`rgba(180,120,60,${l})`; ctx.lineWidth=0.5;
+            ctx.beginPath(); ctx.moveTo(0,y+Math.sin(y*0.1)*2); ctx.lineTo(W,y+Math.cos(y*0.08)*2); ctx.stroke();
+        }
+        const gl=ctx.createRadialGradient(W*.5,H*.38,0,W*.5,H*.38,W*.55);
+        gl.addColorStop(0,'rgba(160,90,30,0.17)'); gl.addColorStop(.5,'rgba(100,50,10,0.07)'); gl.addColorStop(1,'rgba(0,0,0,0)');
+        ctx.fillStyle=gl; ctx.fillRect(0,0,W,H);
+    }
+    function draw(){
+        ctx.clearRect(0,0,W,H); bg();
+        pts.forEach(p=>{ p.wb+=p.ws; p.x+=p.drift+Math.sin(p.wb)*0.22; p.y-=p.speed;
+            if(p.y<-10) p.reset();
+            ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+            ctx.fillStyle=p.color+p.alpha+')'; ctx.fill(); });
+        requestAnimationFrame(draw);
+    }
+    window.addEventListener('resize',()=>{ resize(); init(); });
+    init(); draw();
+})();
+</script>
+</body>
+</html>
